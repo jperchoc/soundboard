@@ -9,12 +9,12 @@ interface Sample {
 }
 
 const cn = (...inputs: ClassValue[]) => {
-  return twMerge(clsx(inputs))
-}
+  return twMerge(clsx(inputs));
+};
 
 function App() {
   const [search, setSearch] = useState('');
-  const mp3Files = import.meta.glob('./assets/**/*.mp3', {
+  const mp3Files = import.meta.glob('./assets/**/*.wav', {
     eager: true,
     import: 'default',
   });
@@ -25,16 +25,22 @@ function App() {
 
   return (
     <div className="p-2">
-      <input className="px-4 py-2 w-full border mb-2" placeholder="Search" type="text" onChange={(e) => setSearch(e.target.value)} value={search} />
+      <input
+        className="px-4 py-2 w-full border mb-2"
+        placeholder="Search"
+        type="text"
+        onChange={(e) => setSearch(e.target.value)}
+        value={search}
+      />
       <AudioPlayerList audioFiles={samples} filter={search.toLocaleLowerCase()} />
     </div>
   );
 }
 
-const AudioPlayerList = ({ audioFiles, filter }: { audioFiles: Sample[], filter: string}) => {
+const AudioPlayerList = ({ audioFiles, filter }: { audioFiles: Sample[], filter: string }) => {
   const [playing, setPlaying] = useState<number | null>(null);
   const audioRefs = useRef<(HTMLAudioElement | null)[]>(Array(audioFiles.length).fill(null));
-  
+
   useEffect(() => {
     if (playing !== null && audioRefs.current[playing]) {
       audioRefs.current[playing]!.play();
@@ -53,17 +59,43 @@ const AudioPlayerList = ({ audioFiles, filter }: { audioFiles: Sample[], filter
     }
   };
 
+  useEffect(() => {
+    const handleKeys = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowRight') {
+        if (playing === null) {
+          handlePlay(0);
+        } else {
+          handlePlay((playing + 1) % audioFiles.length);
+        }
+      } else if (event.key === 'ArrowLeft') {
+        if (playing === null) {
+          handlePlay(audioFiles.length - 1);
+        } else {
+          handlePlay((playing - 1 + audioFiles.length) % audioFiles.length);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeys);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeys);
+    };
+  }, [playing, audioFiles.length]);
+
   return (
-      <div className="flex flex-wrap">
-          {audioFiles.map((file, index) => (
-        <div key={file.name} className={cn(
-          'border p-2',
-          playing === index && 'bg-green-500',
-          !file.name.toLocaleLowerCase().includes(filter) && !(playing === index) && 'hidden'
-        )}>
-          <h3>{file.name}</h3>
+    <div className="flex flex-wrap">
+      {audioFiles.map((file, index) => (
+        <div
+          key={file.name}
+          className={cn(
+            'border p-2',
+            playing === index && 'bg-green-500',
+            !file.name.toLocaleLowerCase().includes(filter) && !(playing === index) && 'hidden'
+          )}
+        >
+          <h3 className="max-w-56 truncate">{file.name.replace(' - ', '. ')}</h3>
           <audio
-            ref={(el) => audioRefs.current[index] = el}
+            ref={(el) => (audioRefs.current[index] = el)}
             onPlay={() => handlePlay(index)}
             src={file.src}
             controls
@@ -76,4 +108,4 @@ const AudioPlayerList = ({ audioFiles, filter }: { audioFiles: Sample[], filter
   );
 };
 
-export default App
+export default App;
